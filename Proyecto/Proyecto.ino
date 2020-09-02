@@ -1,5 +1,16 @@
 #include <LiquidCrystal.h>
 #include <Adafruit_Keypad.h>
+#include <Servo.h>
+
+#define Rojo 53
+#define Amarillo 51
+#define pinServo 47
+#define Abrir 45
+#define Cerrar 43
+Servo servo;
+
+bool moverServo,cierreInesperado,porton;
+long tiempoPorton=0,tiempoCierre=0;
 
 /*
     The circuit:
@@ -34,6 +45,14 @@ byte colPins[3] = {22, 23, 24}; //connect to the column pinouts of the keypad
 Adafruit_Keypad teclado = Adafruit_Keypad( makeKeymap(keys), rowPins, colPins, 4, 3);
 
 void setup() {
+  moverServo=cierreInesperado=porton=false;
+  servo.attach(pinServo);
+  Serial.begin(9600);
+  pinMode(Rojo,OUTPUT);
+  pinMode(Amarillo,OUTPUT);
+  digitalWrite(Amarillo, HIGH);
+  servo.write(0);
+  
   // set up the LCD's number of columns and rows:
   lcd.begin(20, 2);
   // Print a message to the LCD.
@@ -44,6 +63,8 @@ void setup() {
 
   //Nos posicionamos en la columna 0 y fila 1
   lcd.setCursor(0, 1);
+
+
 }
 
 void loop() {
@@ -54,6 +75,78 @@ void loop() {
     if (e.bit.EVENT == KEY_JUST_PRESSED) lcd.print((char)e.bit.KEY);
   }
 
+
+//-------------------Porton-------------------
+   if(digitalRead(Abrir)){
+    moverServo=true;
+  }
+  if(digitalRead(Cerrar)){
+    cierreInesperado=true;
+    moverServo=false;
+  }
+  Porton();
   
 
+}
+
+
+void Porton(){
+  if(cierreInesperado){
+     //Serial.println("Cerrando");
+    if(digitalRead(Rojo)&&tiempoCierre==0){
+      tiempoPorton=millis();
+      digitalWrite(Rojo, LOW);
+      tiempoCierre=2100;
+      servo.write(0);
+      Serial.println("Cerrando");
+    }else if(tiempoCierre==0){
+      tiempoCierre=millis()-tiempoPorton;
+      tiempoPorton=millis();
+      servo.write(0);
+      Serial.println("Cerrando");
+    }
+    if (tiempoPorton+tiempoCierre<millis()){
+      Serial.println(millis());
+      Serial.println("Cerrado");
+      digitalWrite(Amarillo, HIGH);
+      moverServo=porton=cierreInesperado=false;
+      tiempoPorton=tiempoCierre =0;
+     }
+  }else
+  if(!porton && moverServo){//si esta cerrado
+     if(tiempoPorton==0){
+      digitalWrite(Amarillo, LOW);
+      Serial.println(millis());
+      Serial.println("Abriendo");
+      tiempoPorton=millis();
+      servo.write(180);
+     }else
+     if (tiempoPorton+2100<millis()){
+      Serial.println(millis());
+      Serial.println("Abierto");
+      porton=true;
+      tiempoPorton=0;
+     }else{
+  //    Serial.println(millis());
+     }
+  }else if(moverServo) {//se abrio
+    
+    if(tiempoPorton ==0 ){
+      tiempoPorton=millis();
+      digitalWrite(Rojo, HIGH);
+    }else if(tiempoPorton+2000<millis()&& digitalRead(Rojo)){
+      digitalWrite(Rojo, LOW);
+      servo.write(0);
+      Serial.println("Cerrando");
+    }else if(millis()>tiempoPorton+4100){
+      digitalWrite(Amarillo, HIGH);
+      moverServo=porton=false;
+      tiempoPorton =0;
+      Serial.println("Cerrado");
+    }else{
+//      Serial.println(millis());
+     }
+    
+    
+  }
 }
