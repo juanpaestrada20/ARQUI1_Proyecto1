@@ -1,12 +1,25 @@
 #include <LiquidCrystal.h>
 #include <Adafruit_Keypad.h>
 #include <Servo.h>
+#include <Stepper.h>
+ 
+// Esto es el número de pasos por revolución
+#define Pasos 20
+ 
+// Constructor, pasamos STEPS y los pines donde tengamos conectado el motor
+Stepper stepper1(Pasos, 46, 45, 44, 43);
+Stepper stepper2(Pasos,42,41, 40, 39);
 
+//Pines de porton
 #define Rojo 53
-#define Amarillo 51
-#define pinServo 47
-#define Abrir 45
-#define Cerrar 43
+#define Amarillo 52
+#define pinServo 51
+#define Abrir 50
+#define Cerrar 49
+
+//Pines de laboratorios
+#define Lab1 48
+#define Lab2 47
 Servo servo;
 
 bool moverServo,cierreInesperado,porton;
@@ -44,6 +57,7 @@ byte colPins[3] = {22, 23, 24}; //connect to the column pinouts of the keypad
 
 Adafruit_Keypad teclado = Adafruit_Keypad( makeKeymap(keys), rowPins, colPins, 4, 3);
 
+
 void setup() {
   moverServo=cierreInesperado=porton=false;
   servo.attach(pinServo);
@@ -65,6 +79,26 @@ void setup() {
   lcd.setCursor(0, 1);
 
 
+  //Pines del Porton
+  pinMode(Rojo, OUTPUT);
+  pinMode(Amarillo, OUTPUT);
+  pinMode(pinServo, OUTPUT);
+  pinMode(Abrir, INPUT);
+  pinMode(Cerrar, INPUT);
+
+  //Pines de laboratorio
+  pinMode(Lab1, INPUT);
+  pinMode(Lab2, INPUT);
+
+  //Pines de Stepper con Driver
+  /*pinMode(ST1B, OUTPUT);
+  pinMode(ST2B, OUTPUT);
+  pinMode(ST3B, OUTPUT);
+  pinMode(ST4B, OUTPUT);*/
+
+  // Asignamos la velocidad en RPM (Revoluciones por Minuto)
+  stepper1.setSpeed(10);
+  stepper2.setSpeed(10);
 }
 
 void loop() {
@@ -85,7 +119,7 @@ void loop() {
     moverServo=false;
   }
   Porton();
-  
+  moverStepper(1);
 
 }
 
@@ -146,7 +180,11 @@ void Porton(){
     }else{
 //      Serial.println(millis());
      }
-    
-    
   }
+}
+
+void moverStepper(int direccion){
+  // Movemos el motor un número determinado de pasos
+  stepper1.step(direccion);
+  stepper2.step(direccion*-1);
 }
