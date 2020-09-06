@@ -232,112 +232,9 @@ void setup() {
 void loop() {
   //Aqui inicia la sesion xd
   if (!sesionIniciada) {
-    
-    if (esRegistro) {
-      if (pwdUser == "") {
-        lcd.setCursor(0,0);
-        lcd.write("Ingrese su nueva");
-        lcd.setCursor(0,1);
-        lcd.write("contrasena");
-      } else {
-        lcd.setCursor(0,0);
-        lcd.write("Confirme la contrasena");
-      }
-    } else if (idUser != ""){
-      lcd.setCursor(0,0);
-      lcd.write("Ingrese su contrasena");
-    } else {
-      lcd.setCursor(0,0);
-      lcd.write("Ingrese su id");
-    }
 
-    //Validaciones sobre el teclado
-    teclado.tick();
-    if(teclado.available()){
-      keypadEvent e = teclado.read();
-      if (e.bit.EVENT == KEY_JUST_PRESSED) auxEntrada += (char)e.bit.KEY;
-    }
-
-    lcd.setCursor(0,1);
-    lcd.print(auxEntrada);
-
-    //Contraseña y validaciones
-    if (auxEntrada.length() == 4) {
-      //Vemos si no se ha intentado registrar poniendo 0000, aqui empieza el registro
-      if (auxEntrada == "0000" && !esRegistro  && idUser == ""){
-        esRegistro = true;
-      }
-      //Aqui empieza el login del sistema
-      else if (esRegistro) {
-        if(pwdUser == "") {
-          pwdUser = auxEntrada;
-        }
-        else if ( auxEntrada ==  pwdUser ){
-          nuevoUsuario(auxEntrada);
-          pwdUser = "";
-          esRegistro = false;
-        }
-        else {
-          lcd.setCursor(0,0);
-          lcd.write("La contrasena debe coincidir");
-          delay(1500);
-        }
-      }
-      //Aqui empieza el login del sistema
-      else if (idUser == "") {
-        idUser = auxEntrada;
-        
-      } 
-      else {
-          bool esCorrecto = buscarUsuario(idUser, auxEntrada);
-
-          idUser = "";
-
-          if (esCorrecto) {
-            sesionIniciada = true;
-            conteoIntentos = 0;
-
-            sonarBocina(2000);
-
-            digitalWrite(UserPermitido, HIGH);
-          } else {
-            conteoIntentos++;
-            Serial.println("Contraseña incorrecta");
-          }
-
-      }
-
-    //Siempre limpiamos la entrada
-      lcd.clear();
-      auxEntrada = "";
-      if(conteoIntentos >= 3) {
-        
-        conteoIntentos = 0;
-        
-        sonarBocina(5000);
-
-        digitalWrite(UserBloqueo, HIGH);
-
-        String auxAdmin = "";
-        while(true) {
-          //Teclado admin
-          teclado.tick();
-          if(teclado.available()){
-            keypadEvent e = teclado.read();
-            if (e.bit.EVENT == KEY_JUST_PRESSED) auxAdmin += (char)e.bit.KEY;
-          }
-
-          if (auxAdmin.length() == 4) {
-            if (auxAdmin == "0106") break;
-            else auxAdmin = "";
-          }
-        }
-
-        digitalWrite(UserBloqueo, LOW);
-          
-      }
-    }
-
+    //Login de la App
+    login();
 
   } 
   else {
@@ -579,4 +476,115 @@ void controladorAplicacion(){
     }
 
   }
+}
+
+void login(){
+  if (esRegistro) {
+    if (pwdUser == "") {
+      lcd.setCursor(0,0);
+      lcd.write("Ingrese su nueva");
+      lcd.setCursor(0,1);
+      lcd.write("contrasena");
+    } 
+    else {
+      lcd.setCursor(0,0);
+      lcd.write("Confirme la contrasena");
+    }
+  }
+  else if (idUser != ""){
+    lcd.setCursor(0,0);
+    lcd.write("Ingrese su contrasena");
+  } 
+  else {
+    lcd.setCursor(0,0);
+    lcd.write("Ingrese su id");
+  }
+
+  //Validaciones sobre el teclado
+  teclado.tick();
+  if(teclado.available()){
+    keypadEvent e = teclado.read();
+    if (e.bit.EVENT == KEY_JUST_PRESSED) auxEntrada += (char)e.bit.KEY;
+  }
+
+  lcd.setCursor(0,1);
+  lcd.print(auxEntrada);
+
+  //Contraseña y validaciones
+  if (auxEntrada.length() == 4) {
+    //Vemos si no se ha intentado registrar poniendo 0000, aqui empieza el registro
+    if (auxEntrada == "0000" && !esRegistro  && idUser == ""){
+      esRegistro = true;
+    }
+    //Aqui empieza el login del sistema
+    else if (esRegistro) {
+      if(pwdUser == "") {
+        pwdUser = auxEntrada;
+      }
+      else if ( auxEntrada ==  pwdUser ){
+        nuevoUsuario(auxEntrada);
+        pwdUser = "";
+        esRegistro = false;
+      }
+      else {
+        lcd.setCursor(0,0);
+        lcd.write("La contrasena debe coincidir");
+        delay(1500);
+      }
+    }
+    //Aqui empieza el login del sistema
+    else if (idUser == "") {
+      idUser = auxEntrada;
+      
+    } 
+    else {
+        bool esCorrecto = buscarUsuario(idUser, auxEntrada);
+
+        idUser = "";
+
+        if (esCorrecto) {
+          sesionIniciada = true;
+          conteoIntentos = 0;
+
+          sonarBocina(2000);
+
+          digitalWrite(UserPermitido, HIGH);
+        } else {
+          conteoIntentos++;
+          Serial.println("Contraseña incorrecta");
+        }
+
+    }
+
+  //Siempre limpiamos la entrada
+    lcd.clear();
+    auxEntrada = "";
+    if(conteoIntentos >= 3) {
+      
+      conteoIntentos = 0;
+      
+      sonarBocina(5000);
+
+      digitalWrite(UserBloqueo, HIGH);
+
+      String auxAdmin = "";
+      while(true) {
+        //Teclado admin
+        teclado.tick();
+        if(teclado.available()){
+          keypadEvent e = teclado.read();
+          if (e.bit.EVENT == KEY_JUST_PRESSED) auxAdmin += (char)e.bit.KEY;
+        }
+
+        if (auxAdmin.length() == 4) {
+          if (auxAdmin == "0106") break;
+          else auxAdmin = "";
+        }
+      }
+
+      digitalWrite(UserBloqueo, LOW);
+        
+    }
+  }
+
 }
