@@ -46,6 +46,39 @@ bool errorContrasenia = false, sesionIniciada = false, esRegistro = false;
 #define UserBloqueo 12
 #define Bocina 13
 
+//INFORMACION PARA COMUNICACION CON LA APLICACION MEDIANTE BLUETOOTH
+
+//Variables Bluetooth
+int Enviados[] = {0,0}; //Hacemos un arreglo para los datos a enviar
+int ledLab1 = 38; //Declaramos el pin de las luces del lab 1
+int ledLab2 = 37; //Declaramos el pin de las luces del lab 1
+int ledCamiones = 36; //Declaramos el pin de las luces de la entrada de camiones
+int ledEmpleados = 35; //Declaramos el pin de las luces de la entrada de empleados
+char entradaApp; //Declaramos una variables para los datos de entrada
+
+//Clock 
+int periodo = 500; //El tiempo que se demora en enviar un nuevo dato a la aplicacion
+unsigned long TiempoAhora = 0; //Variable para determinar el tiempo transcurrido
+/*
+     Lab1 banda: A -> Encendido
+     Lab1 banda: B -> Apagado
+     
+     Lab2 banda: C -> Encendido
+     Lab2 banda: D -> Apagado 
+     Abrir porton: E -> Encendido
+     Cerrar porton: F -> Apagado 
+     Luces Lab1: G -> Encender
+     Luces Lab1: H -> Apagar
+     Luces Lab2: I -> Encender
+     Luces Lab2: J -> Apagar
+     Luces SalidaCamiones: K -> Encender
+     Luces SalidaCamiones: L -> Apagar
+     Luces EntradaEmpleados: M -> Encender
+     Luces EntradaEmpleados: N -> Apagar
+     Luces General: O -> Encender
+     Luces General: P -> Apagar
+*/
+
 /*
   The circuit:
   * LCD RS pin to digital pin 7
@@ -78,6 +111,44 @@ byte colPins[3] = {22, 23, 24}; //connect to the column pinouts of the keypad
 
 Adafruit_Keypad teclado = Adafruit_Keypad( makeKeymap(keys), rowPins, colPins, 4, 3);
 
+//INFORMACION PARA COMUNICACION CON LA APLICACION MEDIANTE BLUETOOTH
+
+//Variables Bluetooth
+int Enviados[] = {0,0}; //Hacemos un arreglo para los datos a enviar
+int ledLab1 = 38; //Declaramos el pin de las luces del lab 1
+int ledLab2 = 37; //Declaramos el pin de las luces del lab 1
+int ledCamiones = 36; //Declaramos el pin de las luces de la entrada de camiones
+int ledEmpleados = 35; //Declaramos el pin de las luces de la entrada de empleados
+char entradaApp; //Declaramos una variables para los datos de entrada
+
+//Clock 
+int periodo = 500; //El tiempo que se demora en enviar un nuevo dato a la aplicacion
+unsigned long TiempoAhora = 0; //Variable para determinar el tiempo transcurrido
+/*
+     Lab1 banda: A -> Encendido
+     Lab1 banda: B -> Apagado
+     
+     Lab2 banda: C -> Encendido
+     Lab2 banda: D -> Apagado 
+
+     Abrir porton: E -> Encendido
+     Cerrar porton: F -> Apagado 
+
+     Luces Lab1: G -> Encender
+     Luces Lab1: H -> Apagar
+
+     Luces Lab2: I -> Encender
+     Luces Lab2: J -> Apagar
+
+     Luces SalidaCamiones: K -> Encender
+     Luces SalidaCamiones: L -> Apagar
+
+     Luces EntradaEmpleados: M -> Encender
+     Luces EntradaEmpleados: N -> Apagar
+
+     Luces General: O -> Encender
+     Luces General: P -> Apagar
+*/
 
 void setup() {
   moverServo=cierreInesperado=porton=false;
@@ -130,6 +201,12 @@ void setup() {
 
   /*CUIDADO: SI ESTA SENTENCIA NO ESTA PUESTA COMO COMEnTARIO, SOLO DEFINIRA QUE NO HAY USUARIOS*/
   //EEPROM.put(0, 0);
+
+  //Pines de las luces
+  pinMode(ledLab1,OUTPUT);
+  pinMode(ledLab2,OUTPUT);
+  pinMode(ledCamiones,OUTPUT);
+  pinMode(ledEmpleados,OUTPUT);
 
   cantidadUsuarios = 0;
   EEPROM.get(0, cantidadUsuarios);
@@ -274,9 +351,10 @@ void loop() {
     }
     Porton();
     moverStepper(1);
+    //Control App
+    controladorAplicacion();
   }
   
-
 }
 
 
@@ -437,4 +515,68 @@ void sonarBocina(int tiempo){
   }
 
   digitalWrite(Bocina, LOW);
+}
+
+
+/*
+*   Luces 
+*/
+
+void controladorAplicacion(){
+
+    if(Serial.available()>0){
+    entradaApp = Serial.read();
+    Serial.println("entrada " + entradaApp);
+    switch(entradaApp){
+      case 'A': // Lab1 banda: A -> Encendido
+        break;
+      case 'B': // Lab1 banda: B -> Apagado
+        break;
+      case 'C': // Lab2 banda: C -> Encendido
+        break;
+      case 'D': // Lab2 banda: D -> Apagado 
+        break;
+      case 'E': // Abrir porton: E -> Encendido
+        break;
+      case 'F': // Cerrar porton: F -> Apagado
+        break;
+      case 'G': // Luces Lab1: G -> Encender
+        digitalWrite(ledLab1, HIGH);
+        break;
+      case 'H': // Luces Lab1: H -> Apagar
+        digitalWrite(ledLab1, LOW);
+        break;
+      case 'I': // Luces Lab2: I -> Encender
+        digitalWrite(ledLab2, HIGH);
+        break;
+      case 'J': // Luces Lab2: J -> Apagar
+        digitalWrite(ledLab2, LOW);
+        break;
+      case 'K': // Luces SalidaCamiones: K -> Encender
+        digitalWrite(ledCamiones, HIGH);
+        break; 
+      case 'L': // Luces SalidaCamiones: L -> Apagar
+        digitalWrite(ledCamiones, LOW);
+        break; 
+      case 'M': // Luces EntradaEmpleados: M -> Encender
+        digitalWrite(ledEmpleados, HIGH);
+        break;
+      case 'N': // Luces EntradaEmpleados: N -> Apagar
+        digitalWrite(ledEmpleados, LOW);
+        break;
+      case 'O': // Luces General: O -> Encender
+        digitalWrite(ledLab1, HIGH);
+        digitalWrite(ledLab2, HIGH);
+        digitalWrite(ledCamiones, HIGH);
+        digitalWrite(ledEmpleados, HIGH);
+        break;
+      case 'P': // Luces General: P -> Apagar
+        digitalWrite(ledLab1, LOW);
+        digitalWrite(ledLab2, LOW);
+        digitalWrite(ledCamiones, LOW);
+        digitalWrite(ledEmpleados, LOW);
+        break;   
+    }
+
+  }
 }
