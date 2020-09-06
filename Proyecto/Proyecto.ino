@@ -15,8 +15,7 @@ Stepper stepper2(Pasos,42,41, 40, 39);
 #define Rojo 53
 #define Amarillo 52
 #define pinServo 51
-#define Abrir 50
-#define Cerrar 49
+#define BuzzerPorton 50
 
 //Pines de laboratorios
 #define Lab1 48
@@ -63,6 +62,47 @@ bool errorContrasenia = false, sesionIniciada = false, esRegistro = false;
 */
 const int rs = 7, en = 6, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+byte face[8] = {
+  0b00000,
+  0b00000,
+  0b01010,
+  0b00000,
+  0b00000,
+  0b10001,
+  0b01110,
+  0b00100
+};
+byte check[8] = {
+  0b00000,
+  0b00000,
+  0b00000,
+  0b00001,
+  0b00010,
+  0b10100,
+  0b01000,
+  0b00000
+};
+byte unlock[8] = {
+  0b01110,
+  0b10001,
+  0b00001,
+  0b11111,
+  0b11011,
+  0b11011,
+  0b11111,
+  0b00000
+};
+byte lock[8] = {
+  0b01110,
+  0b10001,
+  0b10001,
+  0b11111,
+  0b11011,
+  0b11011,
+  0b11111,
+  0b00000
+};
 
 
 //Colocamos todo lo necesario para el teclado
@@ -118,13 +158,14 @@ unsigned long TiempoAhora = 0; //Variable para determinar el tiempo transcurrido
 */
 
 void setup() {
-  moverServo=cierreInesperado=porton=false;
-  servo.attach(pinServo);
   Serial.begin(9600);
-  pinMode(Rojo,OUTPUT);
-  pinMode(Amarillo,OUTPUT);
-  digitalWrite(Amarillo, HIGH);
-  servo.write(0);
+  // auxiliares para em manejo del porton
+  moverServo=cierreInesperado=porton=false;
+  //caracteres especiales para la pantalla
+  lcd.createChar(0,face);
+  lcd.createChar(1,check);
+  lcd.createChar(2,lock);
+  lcd.createChar(3,unlock);
   
   // set up the LCD's number of columns and rows:
   lcd.begin(20, 2);
@@ -138,11 +179,12 @@ void setup() {
 
 
   //Pines del Porton
+  servo.attach(pinServo);
+  servo.write(0);
   pinMode(Rojo, OUTPUT);
   pinMode(Amarillo, OUTPUT);
   pinMode(pinServo, OUTPUT);
-  pinMode(Abrir, INPUT);
-  pinMode(Cerrar, INPUT);
+ 
 
   //Pines de laboratorio
   pinMode(Lab1, INPUT);
@@ -199,20 +241,13 @@ void setup() {
 void loop() {
   //Aqui inicia la sesion xd
   if (!sesionIniciada) {
-
+  
     //Login de la App
-    login();
-
+    login();  
+    
   } 
   else {
     //-------------------Porton-------------------
-    if(digitalRead(Abrir)){
-      moverServo=true;
-    }
-    if(digitalRead(Cerrar)){
-      cierreInesperado=true;
-      moverServo=false;
-    }
     Porton();
     moverStepper(1);
     //Control App
@@ -230,55 +265,79 @@ void Porton(){
       digitalWrite(Rojo, LOW);
       tiempoCierre=2100;
       servo.write(0);
-      Serial.println("Cerrando");
-    }else if(tiempoCierre==0){
+      mostrarTexto(2,"Cerrando");
+      }else if(tiempoCierre==0){
       tiempoCierre=millis()-tiempoPorton;
       tiempoPorton=millis();
       servo.write(0);
-      Serial.println("Cerrando");
-    }
-    if (tiempoPorton+tiempoCierre<millis()){
-      Serial.println(millis());
-      Serial.println("Cerrado");
-      digitalWrite(Amarillo, HIGH);
+      mostrarTexto(2,"Cerrando");
+      }
+      
+     if(millis()>tiempoPorton+tiempoCierre+2000){
+      digitalWrite(Amarillo, LOW);
+      noTone(BuzzerPorton);
       moverServo=porton=cierreInesperado=false;
       tiempoPorton=tiempoCierre =0;
+      delay(100);
+      lcd.clear();
+     }else if (tiempoPorton+tiempoCierre<millis()&& !digitalRead(Amarillo)){
+      digitalWrite(Amarillo, HIGH);
+      tone(BuzzerPorton,1000);
+      mostrarTexto(2,"Cerrado");
+      
      }
+     
   }else
   if(!porton && moverServo){//si esta cerrado
      if(tiempoPorton==0){
       digitalWrite(Amarillo, LOW);
-      Serial.println(millis());
-      Serial.println("Abriendo");
+      mostrarTexto(3,"Abriendo");
       tiempoPorton=millis();
       servo.write(180);
      }else
      if (tiempoPorton+2100<millis()){
-      Serial.println(millis());
-      Serial.println("Abierto");
+      mostrarTexto(3,"Abierto");
       porton=true;
       tiempoPorton=0;
-     }else{
-  //    Serial.println(millis());
      }
   }else if(moverServo) {//se abrio
-    
+  
     if(tiempoPorton ==0 ){
       tiempoPorton=millis();
       digitalWrite(Rojo, HIGH);
-    }else if(tiempoPorton+2000<millis()&& digitalRead(Rojo)){
+    }else if(tiempoPorton+2000<millis()&& digitalRead(Rojo)){// cuando pasen los 6 segundos se apagara la luz roja y se empiezaa cerrar el porton
       digitalWrite(Rojo, LOW);
       servo.write(0);
-      Serial.println("Cerrando");
-    }else if(millis()>tiempoPorton+4100){
+      mostrarTexto(2,"Cerrando");
+    }else if(millis()>tiempoPorton+4100 &&!digitalRead(Amarillo)){// (4100->tiempo que tardo en abrir mas el tiempo en que que se cierra)
       digitalWrite(Amarillo, HIGH);
+      tone(BuzzerPorton,1000);
+      mostrarTexto(2,"Cerrado");
+      
+    }else if(millis()>tiempoPorton+6100){
+      digitalWrite(Amarillo, LOW);
+      noTone(BuzzerPorton);
       moverServo=porton=false;
       tiempoPorton =0;
-      Serial.println("Cerrado");
-    }else{
-//      Serial.println(millis());
+      delay(100);
+      lcd.clear();
      }
+    
+    
   }
+}
+
+void mostrarTexto(int c,String texto ){
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.write(1);
+  lcd.print(" ControlPorton ");
+  lcd.setCursor(0, 1);
+  lcd.write(c);
+  lcd.print(" ");
+  lcd.write((byte)0);
+  lcd.print(" "+texto+" ");
+  lcd.write((byte)0);
 }
 
 void moverStepper(int direccion){
@@ -401,8 +460,11 @@ void controladorAplicacion(){
       case 'D': // Lab2 banda: D -> Apagado 
         break;
       case 'E': // Abrir porton: E -> Encendido
+        moverServo=true;
         break;
       case 'F': // Cerrar porton: F -> Apagado
+        cierreInesperado=true;
+        moverServo=false;
         break;
       case 'G': // Luces Lab1: G -> Encender
         digitalWrite(ledLab1, HIGH);
