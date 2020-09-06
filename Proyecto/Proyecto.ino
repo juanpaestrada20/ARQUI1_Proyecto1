@@ -1,3 +1,4 @@
+#include <EEPROM.h>
 #include <LiquidCrystal.h>
 #include <Adafruit_Keypad.h>
 #include <Servo.h>
@@ -25,20 +26,40 @@ Servo servo;
 bool moverServo,cierreInesperado,porton;
 long tiempoPorton=0,tiempoCierre=0;
 
+/* La variable cantidadUsuarios, registrada al principio de la eeprom determina el numero de usuarios que tenemos, esta variable nos ayudara a leer n cantidad de usuarios, 
+   para no borrar en esta memoria  */
+unsigned int cantidadUsuarios, conteoIntentos;
+
+//Struct para la representacion de los usuarios
+struct usuario {
+  char id[5];
+  char password[5];
+};
+
+//Creamos un auxiliar para obtener el auxEntrada
+String auxEntrada = "", idUser = "", pwdUser = "";
+
+bool errorContrasenia = false, sesionIniciada = false, esRegistro = false;
+
+//Pines de la luces del acceso
+#define UserPermitido 11
+#define UserBloqueo 12
+#define Bocina 13
+
 /*
-    The circuit:
- * LCD RS pin to digital pin 7
- * LCD Enable pin to digital pin 6
- * LCD D4 pin to digital pin 5
- * LCD D5 pin to digital pin 4
- * LCD D6 pin to digital pin 3
- * LCD D7 pin to digital pin 2
- * LCD R/W pin to ground
- * LCD VSS pin to ground
- * LCD VCC pin to 5V
- * 10K resistor:
- * ends to +5V and ground
- * wiper to LCD VO pin (pin 3)
+  The circuit:
+  * LCD RS pin to digital pin 7
+  * LCD Enable pin to digital pin 6
+  * LCD D4 pin to digital pin 5
+  * LCD D5 pin to digital pin 4
+  * LCD D6 pin to digital pin 3
+  * LCD D7 pin to digital pin 2
+  * LCD R/W pin to ground
+  * LCD VSS pin to ground
+  * LCD VCC pin to 5V
+  * 10K resistor:
+  * ends to +5V and ground
+  * wiper to LCD VO pin (pin 3)
 */
 const int rs = 7, en = 6, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
@@ -72,11 +93,10 @@ void setup() {
   // Print a message to the LCD.
   lcd.print("Bienvenido");
 
+  delay(1000);
+
   //Teclado de empieza xd
   teclado.begin();
-
-  //Nos posicionamos en la columna 0 y fila 1
-  lcd.setCursor(0, 1);
 
 
   //Pines del Porton
@@ -90,6 +110,11 @@ void setup() {
   pinMode(Lab1, INPUT);
   pinMode(Lab2, INPUT);
 
+  //Pines de los leds del usuario y la Bocina
+  pinMode(Bocina, OUTPUT);
+  pinMode(UserPermitido, OUTPUT);
+  pinMode(UserBloqueo, OUTPUT);
+
   //Pines de Stepper con Driver
   /*pinMode(ST1B, OUTPUT);
   pinMode(ST2B, OUTPUT);
@@ -99,27 +124,158 @@ void setup() {
   // Asignamos la velocidad en RPM (Revoluciones por Minuto)
   stepper1.setSpeed(10);
   stepper2.setSpeed(10);
+
+
+  //Esta funcion nos ayudara unicamente a ver por primera vez si la EEPROM esta completamente vacia, si hay o no cantidades de usuarios
+
+  /*CUIDADO: SI ESTA SENTENCIA NO ESTA PUESTA COMO COMEnTARIO, SOLO DEFINIRA QUE NO HAY USUARIOS*/
+  //EEPROM.put(0, 0);
+
+  cantidadUsuarios = 0;
+  EEPROM.get(0, cantidadUsuarios);
+  
+  if (cantidadUsuarios == 0) {
+    //Seteamos la existencia de un unico usuario (ADMIN)
+    cantidadUsuarios = 1;
+    //Escribimos la cantidad de usuarios
+    EEPROM.put(0, cantidadUsuarios);
+
+    //Creamos al ADMIN
+    usuario admin = {
+      "2018",
+      "0106"
+    };
+
+    int tamanioCant = sizeof(cantidadUsuarios);
+    EEPROM.put(tamanioCant, cantidadUsuarios);
+  }
+
 }
 
 void loop() {
-  teclado.tick();
+  //Aqui inicia la sesion xd
+  if (!sesionIniciada) {
+    
+    if (esRegistro) {
+      if (pwdUser == "") {
+        lcd.setCursor(0,0);
+        lcd.write("Ingrese su nueva");
+        lcd.setCursor(0,1);
+        lcd.write("contrasena");
+      } else {
+        lcd.setCursor(0,0);
+        lcd.write("Confirme la contrasena");
+      }
+    } else if (idUser != ""){
+      lcd.setCursor(0,0);
+      lcd.write("Ingrese su contrasena");
+    } else {
+      lcd.setCursor(0,0);
+      lcd.write("Ingrese su id");
+    }
 
-  while(teclado.available()){
-    keypadEvent e = teclado.read();
-    if (e.bit.EVENT == KEY_JUST_PRESSED) lcd.print((char)e.bit.KEY);
-  }
+    //Validaciones sobre el teclado
+    teclado.tick();
+    if(teclado.available()){
+      keypadEvent e = teclado.read();
+      if (e.bit.EVENT == KEY_JUST_PRESSED) auxEntrada += (char)e.bit.KEY;
+    }
+
+    lcd.setCursor(0,1);
+    lcd.print(auxEntrada);
+
+    //Contraseña y validaciones
+    if (auxEntrada.length() == 4) {
+      //Vemos si no se ha intentado registrar poniendo 0000, aqui empieza el registro
+      if (auxEntrada == "0000" && !esRegistro  && idUser == ""){
+        esRegistro = true;
+      }
+      //Aqui empieza el login del sistema
+      else if (esRegistro) {
+        if(pwdUser == "") {
+          pwdUser = auxEntrada;
+        }
+        else if ( auxEntrada ==  pwdUser ){
+          nuevoUsuario(auxEntrada);
+          pwdUser = "";
+          esRegistro = false;
+        }
+        else {
+          lcd.setCursor(0,0);
+          lcd.write("La contrasena debe coincidir");
+          delay(1500);
+        }
+      }
+      //Aqui empieza el login del sistema
+      else if (idUser == "") {
+        idUser = auxEntrada;
+        
+      } 
+      else {
+          bool esCorrecto = buscarUsuario(idUser, auxEntrada);
+
+          idUser = "";
+
+          if (esCorrecto) {
+            sesionIniciada = true;
+            conteoIntentos = 0;
+
+            sonarBocina(2000);
+
+            digitalWrite(UserPermitido, HIGH);
+          } else {
+            conteoIntentos++;
+            Serial.println("Contraseña incorrecta");
+          }
+
+      }
+
+    //Siempre limpiamos la entrada
+      lcd.clear();
+      auxEntrada = "";
+      if(conteoIntentos >= 3) {
+        
+        conteoIntentos = 0;
+        
+        sonarBocina(5000);
+
+        digitalWrite(UserBloqueo, HIGH);
+
+        String auxAdmin = "";
+        while(true) {
+          //Teclado admin
+          teclado.tick();
+          if(teclado.available()){
+            keypadEvent e = teclado.read();
+            if (e.bit.EVENT == KEY_JUST_PRESSED) auxAdmin += (char)e.bit.KEY;
+          }
+
+          if (auxAdmin.length() == 4) {
+            if (auxAdmin == "0106") break;
+            else auxAdmin = "";
+          }
+        }
+
+        digitalWrite(UserBloqueo, LOW);
+          
+      }
+    }
 
 
-//-------------------Porton-------------------
-   if(digitalRead(Abrir)){
-    moverServo=true;
+  } 
+  else {
+    //-------------------Porton-------------------
+    if(digitalRead(Abrir)){
+      moverServo=true;
+    }
+    if(digitalRead(Cerrar)){
+      cierreInesperado=true;
+      moverServo=false;
+    }
+    Porton();
+    moverStepper(1);
   }
-  if(digitalRead(Cerrar)){
-    cierreInesperado=true;
-    moverServo=false;
-  }
-  Porton();
-  moverStepper(1);
+  
 
 }
 
@@ -187,4 +343,98 @@ void moverStepper(int direccion){
   // Movemos el motor un número determinado de pasos
   stepper1.step(direccion);
   stepper2.step(direccion*-1);
+}
+
+bool buscarUsuario(String id, String password) {
+  for (int indexUsuario = 0; indexUsuario  < cantidadUsuarios; indexUsuario++)
+  {
+    //Leemos cada usuario disponible
+    usuario user;
+    EEPROM.get(sizeof(cantidadUsuarios) + sizeof(user) * indexUsuario, user);
+
+    String IdUser(user.id);
+    String PwdUser(user.password);
+    if (IdUser == id && PwdUser == password) return true;
+  }
+
+  return false;
+}
+
+void nuevoUsuario(String password) {
+  //Creamos una variable de tipo string para poder hacer mejor el id
+  String idString; 
+  if (cantidadUsuarios < 9) idString = "000";
+  else if(cantidadUsuarios < 99) idString = "00";
+  else if (cantidadUsuarios < 999) idString = "0";
+  else idString = "";
+
+  idString += "" + (cantidadUsuarios+1);
+  
+  //Ahora guardamos el Id en un array de bytes
+  char idB[5];
+  idString.toCharArray(idB, sizeof(idB));
+
+  //Creamos un variable para guardar la password
+  char pwd[5];
+  password.toCharArray(pwd, sizeof(pwd));
+
+  //Creamos un nuevo usuario
+  usuario user = {
+    {idB},
+    {pwd}
+  };
+
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("El admin debe");
+  lcd.setCursor(0,1);
+  lcd.print("autorizar");
+
+  //Mostramos el nuevo id creado usando el lcd para ello
+  String auxAdmin = "";
+  while(true) {
+    //Teclado admin
+    teclado.tick();
+    if(teclado.available()){
+      keypadEvent e = teclado.read();
+      if (e.bit.EVENT == KEY_JUST_PRESSED) auxAdmin += (char)e.bit.KEY;
+    }
+
+    if (auxAdmin.length() == 4) {
+      if (auxAdmin == "0106") break;
+      else auxAdmin = "";
+    }
+
+  }
+
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Registro exitoso");
+  lcd.setCursor(0,1);
+  lcd.print("ID: ");
+  lcd.print(idString);
+
+  unsigned long auxTiempo = millis();
+  while (abs(millis() - auxTiempo) < 1500)
+  {
+    delay(1);
+  }
+
+  //Guardamos su posicion segun el espacio indicado por la cantidad actual de usuarios debido que el elemento An esta en n-1
+  EEPROM.put(sizeof(cantidadUsuarios) + sizeof(user) * cantidadUsuarios, user);
+
+  //Incrementamos y guardamos el valor de la cantidad de usuarios
+  EEPROM.put(0, ++cantidadUsuarios);
+  
+}
+
+//La funcion hace funcionar la bocina n cantidad de ms
+void sonarBocina(int tiempo){
+  unsigned long auxTiempo = millis();
+  while ( abs(millis() - auxTiempo) < tiempo ) {
+    digitalWrite(Bocina, HIGH);
+    delay(1);
+  }
+
+  digitalWrite(Bocina, LOW);
 }
