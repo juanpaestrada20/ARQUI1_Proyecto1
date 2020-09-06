@@ -25,7 +25,7 @@ Servo servo;
 bool moverServo, cierreInesperado, porton;
 long tiempoPorton = 0, tiempoCierre = 0;
 
-unsigned long tiempoMotor = 0;
+int temperatura;
 int pararMotor = 0;
 
 /* La variable cantidadUsuarios, registrada al principio de la eeprom determina el numero de usuarios que tenemos, esta variable nos ayudara a leer n cantidad de usuarios,
@@ -198,16 +198,12 @@ void setup() {
   pinMode(UserPermitido, OUTPUT);
   pinMode(UserBloqueo, OUTPUT);
 
-  //Pines de Stepper con Driver
-  /*pinMode(ST1B, OUTPUT);
-    pinMode(ST2B, OUTPUT);
-    pinMode(ST3B, OUTPUT);
-    pinMode(ST4B, OUTPUT);*/
-
   // Asignamos la velocidad en RPM (Revoluciones por Minuto)
   stepper1.setSpeed(10);
   stepper2.setSpeed(10);
 
+  // Leer temperatura
+  pinMode(A1, INPUT);
 
   //Esta funcion nos ayudara unicamente a ver por primera vez si la EEPROM esta completamente vacia, si hay o no cantidades de usuarios
 
@@ -246,13 +242,14 @@ void loop() {
   if (!sesionIniciada) {
 
     //Login de la App
-    //login();
-    moverStepper(1);
+    login();
+    
 
   }
   else {
     //-------------------Porton-------------------
     Porton();
+    leerTemperatura();
     moverStepper(1);
     //Control App
     controladorAplicacion();
@@ -690,5 +687,15 @@ void login() {
 
     }
   }
+
+}
+
+void leerTemperatura(){
+  temperatura = analogRead(A1);
+  float temp = (temperatura/1024.0)*500;
+  Serial.print("Temperatura");
+  Serial.print(temp);
+  Serial.print("°C");
+  delay(10000);
 
 }
