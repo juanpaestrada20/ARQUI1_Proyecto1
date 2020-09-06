@@ -46,39 +46,6 @@ bool errorContrasenia = false, sesionIniciada = false, esRegistro = false;
 #define UserBloqueo 12
 #define Bocina 13
 
-//INFORMACION PARA COMUNICACION CON LA APLICACION MEDIANTE BLUETOOTH
-
-//Variables Bluetooth
-int Enviados[] = {0,0}; //Hacemos un arreglo para los datos a enviar
-int ledLab1 = 38; //Declaramos el pin de las luces del lab 1
-int ledLab2 = 37; //Declaramos el pin de las luces del lab 1
-int ledCamiones = 36; //Declaramos el pin de las luces de la entrada de camiones
-int ledEmpleados = 35; //Declaramos el pin de las luces de la entrada de empleados
-char entradaApp; //Declaramos una variables para los datos de entrada
-
-//Clock 
-int periodo = 500; //El tiempo que se demora en enviar un nuevo dato a la aplicacion
-unsigned long TiempoAhora = 0; //Variable para determinar el tiempo transcurrido
-/*
-     Lab1 banda: A -> Encendido
-     Lab1 banda: B -> Apagado
-     
-     Lab2 banda: C -> Encendido
-     Lab2 banda: D -> Apagado 
-     Abrir porton: E -> Encendido
-     Cerrar porton: F -> Apagado 
-     Luces Lab1: G -> Encender
-     Luces Lab1: H -> Apagar
-     Luces Lab2: I -> Encender
-     Luces Lab2: J -> Apagar
-     Luces SalidaCamiones: K -> Encender
-     Luces SalidaCamiones: L -> Apagar
-     Luces EntradaEmpleados: M -> Encender
-     Luces EntradaEmpleados: N -> Apagar
-     Luces General: O -> Encender
-     Luces General: P -> Apagar
-*/
-
 /*
   The circuit:
   * LCD RS pin to digital pin 7
