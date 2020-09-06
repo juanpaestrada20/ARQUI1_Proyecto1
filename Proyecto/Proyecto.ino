@@ -3,13 +3,13 @@
 #include <Adafruit_Keypad.h>
 #include <Servo.h>
 #include <Stepper.h>
- 
+
 // Esto es el número de pasos por revolución
 #define Pasos 20
- 
+
 // Constructor, pasamos STEPS y los pines donde tengamos conectado el motor
 Stepper stepper1(Pasos, 46, 45, 44, 43);
-Stepper stepper2(Pasos,42,41, 40, 39);
+Stepper stepper2(Pasos, 42, 41, 40, 39);
 
 //Pines de porton
 #define Rojo 53
@@ -22,10 +22,13 @@ Stepper stepper2(Pasos,42,41, 40, 39);
 #define Lab2 47
 Servo servo;
 
-bool moverServo,cierreInesperado,porton;
-long tiempoPorton=0,tiempoCierre=0;
+bool moverServo, cierreInesperado, porton;
+long tiempoPorton = 0, tiempoCierre = 0;
 
-/* La variable cantidadUsuarios, registrada al principio de la eeprom determina el numero de usuarios que tenemos, esta variable nos ayudara a leer n cantidad de usuarios, 
+unsigned long tiempoMotor = 0;
+int pararMotor = 0;
+
+/* La variable cantidadUsuarios, registrada al principio de la eeprom determina el numero de usuarios que tenemos, esta variable nos ayudara a leer n cantidad de usuarios,
    para no borrar en esta memoria  */
 unsigned int cantidadUsuarios, conteoIntentos;
 
@@ -47,18 +50,18 @@ bool errorContrasenia = false, sesionIniciada = false, esRegistro = false;
 
 /*
   The circuit:
-  * LCD RS pin to digital pin 7
-  * LCD Enable pin to digital pin 6
-  * LCD D4 pin to digital pin 5
-  * LCD D5 pin to digital pin 4
-  * LCD D6 pin to digital pin 3
-  * LCD D7 pin to digital pin 2
-  * LCD R/W pin to ground
-  * LCD VSS pin to ground
-  * LCD VCC pin to 5V
-  * 10K resistor:
-  * ends to +5V and ground
-  * wiper to LCD VO pin (pin 3)
+    LCD RS pin to digital pin 7
+    LCD Enable pin to digital pin 6
+    LCD D4 pin to digital pin 5
+    LCD D5 pin to digital pin 4
+    LCD D6 pin to digital pin 3
+    LCD D7 pin to digital pin 2
+    LCD R/W pin to ground
+    LCD VSS pin to ground
+    LCD VCC pin to 5V
+    10K resistor:
+    ends to +5V and ground
+    wiper to LCD VO pin (pin 3)
 */
 const int rs = 7, en = 6, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
@@ -107,10 +110,10 @@ byte lock[8] = {
 
 //Colocamos todo lo necesario para el teclado
 char keys[4][3] = {
-  {'1','2','3'},
-  {'4','5','6'},
-  {'7','8','9'},
-  {'*','0','#'}
+  {'1', '2', '3'},
+  {'4', '5', '6'},
+  {'7', '8', '9'},
+  {'*', '0', '#'}
 };
 
 byte rowPins[4] = {25, 26, 27, 28}; //connect to the row pinouts of the keypad
@@ -121,25 +124,25 @@ Adafruit_Keypad teclado = Adafruit_Keypad( makeKeymap(keys), rowPins, colPins, 4
 //INFORMACION PARA COMUNICACION CON LA APLICACION MEDIANTE BLUETOOTH
 
 //Variables Bluetooth
-int Enviados[] = {0,0}; //Hacemos un arreglo para los datos a enviar
+int Enviados[] = {0, 0}; //Hacemos un arreglo para los datos a enviar
 int ledLab1 = 38; //Declaramos el pin de las luces del lab 1
 int ledLab2 = 37; //Declaramos el pin de las luces del lab 1
 int ledCamiones = 36; //Declaramos el pin de las luces de la entrada de camiones
 int ledEmpleados = 35; //Declaramos el pin de las luces de la entrada de empleados
 char entradaApp; //Declaramos una variables para los datos de entrada
 
-//Clock 
+//Clock
 int periodo = 500; //El tiempo que se demora en enviar un nuevo dato a la aplicacion
 unsigned long TiempoAhora = 0; //Variable para determinar el tiempo transcurrido
 /*
      Lab1 banda: A -> Encendido
      Lab1 banda: B -> Apagado
-     
+
      Lab2 banda: C -> Encendido
-     Lab2 banda: D -> Apagado 
+     Lab2 banda: D -> Apagado
 
      Abrir porton: E -> Encendido
-     Cerrar porton: F -> Apagado 
+     Cerrar porton: F -> Apagado
 
      Luces Lab1: G -> Encender
      Luces Lab1: H -> Apagar
@@ -160,13 +163,13 @@ unsigned long TiempoAhora = 0; //Variable para determinar el tiempo transcurrido
 void setup() {
   Serial.begin(9600);
   // auxiliares para em manejo del porton
-  moverServo=cierreInesperado=porton=false;
+  moverServo = cierreInesperado = porton = false;
   //caracteres especiales para la pantalla
-  lcd.createChar(0,face);
-  lcd.createChar(1,check);
-  lcd.createChar(2,lock);
-  lcd.createChar(3,unlock);
-  
+  lcd.createChar(0, face);
+  lcd.createChar(1, check);
+  lcd.createChar(2, lock);
+  lcd.createChar(3, unlock);
+
   // set up the LCD's number of columns and rows:
   lcd.begin(20, 2);
   // Print a message to the LCD.
@@ -184,7 +187,7 @@ void setup() {
   pinMode(Rojo, OUTPUT);
   pinMode(Amarillo, OUTPUT);
   pinMode(pinServo, OUTPUT);
- 
+
 
   //Pines de laboratorio
   pinMode(Lab1, INPUT);
@@ -197,9 +200,9 @@ void setup() {
 
   //Pines de Stepper con Driver
   /*pinMode(ST1B, OUTPUT);
-  pinMode(ST2B, OUTPUT);
-  pinMode(ST3B, OUTPUT);
-  pinMode(ST4B, OUTPUT);*/
+    pinMode(ST2B, OUTPUT);
+    pinMode(ST3B, OUTPUT);
+    pinMode(ST4B, OUTPUT);*/
 
   // Asignamos la velocidad en RPM (Revoluciones por Minuto)
   stepper1.setSpeed(10);
@@ -212,14 +215,14 @@ void setup() {
   //EEPROM.put(0, 0);
 
   //Pines de las luces
-  pinMode(ledLab1,OUTPUT);
-  pinMode(ledLab2,OUTPUT);
-  pinMode(ledCamiones,OUTPUT);
-  pinMode(ledEmpleados,OUTPUT);
+  pinMode(ledLab1, OUTPUT);
+  pinMode(ledLab2, OUTPUT);
+  pinMode(ledCamiones, OUTPUT);
+  pinMode(ledEmpleados, OUTPUT);
 
   cantidadUsuarios = 0;
   EEPROM.get(0, cantidadUsuarios);
-  
+
   if (cantidadUsuarios == 0) {
     //Seteamos la existencia de un unico usuario (ADMIN)
     cantidadUsuarios = 1;
@@ -241,11 +244,12 @@ void setup() {
 void loop() {
   //Aqui inicia la sesion xd
   if (!sesionIniciada) {
-  
+
     //Login de la App
-    login();  
-    
-  } 
+    //login();
+    moverStepper(1);
+
+  }
   else {
     //-------------------Porton-------------------
     Porton();
@@ -253,81 +257,79 @@ void loop() {
     //Control App
     controladorAplicacion();
   }
-  
+
 }
 
 
-void Porton(){
-  if(cierreInesperado){
-     //Serial.println("Cerrando");
-    if(digitalRead(Rojo)&&tiempoCierre==0){
-      tiempoPorton=millis();
+void Porton() {
+  if (cierreInesperado) {
+    //Serial.println("Cerrando");
+    if (digitalRead(Rojo) && tiempoCierre == 0) {
+      tiempoPorton = millis();
       digitalWrite(Rojo, LOW);
-      tiempoCierre=2100;
+      tiempoCierre = 2100;
       servo.write(0);
-      mostrarTexto(2,"Cerrando");
-      }else if(tiempoCierre==0){
-      tiempoCierre=millis()-tiempoPorton;
-      tiempoPorton=millis();
+      mostrarTexto(2, "Cerrando");
+    } else if (tiempoCierre == 0) {
+      tiempoCierre = millis() - tiempoPorton;
+      tiempoPorton = millis();
       servo.write(0);
-      mostrarTexto(2,"Cerrando");
-      }
-      
-     if(millis()>tiempoPorton+tiempoCierre+2000){
+      mostrarTexto(2, "Cerrando");
+    }
+
+    if (millis() > tiempoPorton + tiempoCierre + 2000) {
       digitalWrite(Amarillo, LOW);
       noTone(BuzzerPorton);
-      moverServo=porton=cierreInesperado=false;
-      tiempoPorton=tiempoCierre =0;
+      moverServo = porton = cierreInesperado = false;
+      tiempoPorton = tiempoCierre = 0;
       delay(100);
       lcd.clear();
-     }else if (tiempoPorton+tiempoCierre<millis()&& !digitalRead(Amarillo)){
+    } else if (tiempoPorton + tiempoCierre < millis() && !digitalRead(Amarillo)) {
       digitalWrite(Amarillo, HIGH);
-      tone(BuzzerPorton,1000);
-      mostrarTexto(2,"Cerrado");
-      
-     }
-     
-  }else
-  if(!porton && moverServo){//si esta cerrado
-     if(tiempoPorton==0){
+      tone(BuzzerPorton, 1000);
+      mostrarTexto(2, "Cerrado");
+
+    }
+
+  } else if (!porton && moverServo) { //si esta cerrado
+    if (tiempoPorton == 0) {
       digitalWrite(Amarillo, LOW);
-      mostrarTexto(3,"Abriendo");
-      tiempoPorton=millis();
+      mostrarTexto(3, "Abriendo");
+      tiempoPorton = millis();
       servo.write(180);
-     }else
-     if (tiempoPorton+2100<millis()){
-      mostrarTexto(3,"Abierto");
-      porton=true;
-      tiempoPorton=0;
-     }
-  }else if(moverServo) {//se abrio
-  
-    if(tiempoPorton ==0 ){
-      tiempoPorton=millis();
+    } else if (tiempoPorton + 2100 < millis()) {
+      mostrarTexto(3, "Abierto");
+      porton = true;
+      tiempoPorton = 0;
+    }
+  } else if (moverServo) { //se abrio
+
+    if (tiempoPorton == 0 ) {
+      tiempoPorton = millis();
       digitalWrite(Rojo, HIGH);
-    }else if(tiempoPorton+2000<millis()&& digitalRead(Rojo)){// cuando pasen los 6 segundos se apagara la luz roja y se empiezaa cerrar el porton
+    } else if (tiempoPorton + 2000 < millis() && digitalRead(Rojo)) { // cuando pasen los 6 segundos se apagara la luz roja y se empiezaa cerrar el porton
       digitalWrite(Rojo, LOW);
       servo.write(0);
-      mostrarTexto(2,"Cerrando");
-    }else if(millis()>tiempoPorton+4100 &&!digitalRead(Amarillo)){// (4100->tiempo que tardo en abrir mas el tiempo en que que se cierra)
+      mostrarTexto(2, "Cerrando");
+    } else if (millis() > tiempoPorton + 4100 && !digitalRead(Amarillo)) { // (4100->tiempo que tardo en abrir mas el tiempo en que que se cierra)
       digitalWrite(Amarillo, HIGH);
-      tone(BuzzerPorton,1000);
-      mostrarTexto(2,"Cerrado");
-      
-    }else if(millis()>tiempoPorton+6100){
+      tone(BuzzerPorton, 1000);
+      mostrarTexto(2, "Cerrado");
+
+    } else if (millis() > tiempoPorton + 6100) {
       digitalWrite(Amarillo, LOW);
       noTone(BuzzerPorton);
-      moverServo=porton=false;
-      tiempoPorton =0;
+      moverServo = porton = false;
+      tiempoPorton = 0;
       delay(100);
       lcd.clear();
-     }
-    
-    
+    }
+
+
   }
 }
 
-void mostrarTexto(int c,String texto ){
+void mostrarTexto(int c, String texto ) {
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.write(1);
@@ -336,14 +338,87 @@ void mostrarTexto(int c,String texto ){
   lcd.write(c);
   lcd.print(" ");
   lcd.write((byte)0);
-  lcd.print(" "+texto+" ");
+  lcd.print(" " + texto + " ");
   lcd.write((byte)0);
 }
 
-void moverStepper(int direccion){
-  // Movemos el motor un número determinado de pasos
-  stepper1.step(direccion);
-  stepper2.step(direccion*-1);
+// direccion es la señal recibida por bluetooth
+// si la señal es 1 va de lab2 -> lab1
+// si la señal es -1 va de lab1 -> lab2
+void moverStepper(int direccion) {
+  int lab1 = digitalRead(Lab1);
+  int lab2 = digitalRead(Lab2);
+  //Si ningun laboratorio a mandado algun paquete mostrara un mensaje
+  //dependiendo de que mande la app
+  if (lab1 == LOW && lab2 == LOW) {
+    if (direccion == 1) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print(" Poner Muestra en");
+      lcd.setCursor(0, 1);
+      lcd.print(" la banda LAB2");
+      delay(1);
+      while (lab2 == LOW) {
+        lab2 = digitalRead(Lab2);
+      }
+    } else {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Poner Muestra en");
+      lcd.setCursor(0, 1);
+      lcd.print("la banda LAB1");
+      delay(1);
+      while (lab1 == LOW) {
+        lab1 = digitalRead(Lab1);
+      }
+    }
+
+  } else if (lab1 == HIGH && lab2 == HIGH) {
+    if (direccion == 1) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Poner Muestra solo");
+      lcd.setCursor(0, 1);
+      lcd.print("en la banda LAB2");
+      while (lab1 == HIGH) {
+        lab1 = digitalRead(Lab1);
+      }
+    } else {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Poner Muestra solo");
+      lcd.setCursor(0, 1);
+      lcd.print("en la banda LAB1");
+      while (lab2 == HIGH) {
+        lab2 = digitalRead(Lab2);
+      }
+    }
+  }
+  pararMotor = 0;
+  tone(BuzzerPorton, 50, 3000);
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Corriendo hacia");
+  lcd.setCursor(0, 1);
+  direccion == 1 ? lcd.print("LAB1") : lcd.print("LAB2");
+  delay(1);
+  while (pararMotor == LOW) {
+    // Movemos los motores
+    stepper1.step(direccion);
+    stepper2.step(direccion);
+    delay(1);
+    direccion == 1 ? pararMotor = digitalRead(Lab1) : pararMotor = digitalRead(Lab2);
+    Serial.println(pararMotor);
+  }
+  stepper1.step(0);
+  stepper2.step(0);
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("La muestra llego al");
+  lcd.setCursor(0, 1);
+  direccion == 1 ? lcd.print("LAB1") : lcd.print("LAB2");
+  tone(BuzzerPorton, 81, 1000);
+  delay(1000);
 }
 
 bool buscarUsuario(String id, String password) {
@@ -363,14 +438,14 @@ bool buscarUsuario(String id, String password) {
 
 void nuevoUsuario(String password) {
   //Creamos una variable de tipo string para poder hacer mejor el id
-  String idString; 
+  String idString;
   if (cantidadUsuarios < 9) idString = "000";
-  else if(cantidadUsuarios < 99) idString = "00";
+  else if (cantidadUsuarios < 99) idString = "00";
   else if (cantidadUsuarios < 999) idString = "0";
   else idString = "";
 
-  idString += "" + (cantidadUsuarios+1);
-  
+  idString += "" + (cantidadUsuarios + 1);
+
   //Ahora guardamos el Id en un array de bytes
   char idB[5];
   idString.toCharArray(idB, sizeof(idB));
@@ -386,17 +461,17 @@ void nuevoUsuario(String password) {
   };
 
   lcd.clear();
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print("El admin debe");
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print("autorizar");
 
   //Mostramos el nuevo id creado usando el lcd para ello
   String auxAdmin = "";
-  while(true) {
+  while (true) {
     //Teclado admin
     teclado.tick();
-    if(teclado.available()){
+    if (teclado.available()) {
       keypadEvent e = teclado.read();
       if (e.bit.EVENT == KEY_JUST_PRESSED) auxAdmin += (char)e.bit.KEY;
     }
@@ -409,9 +484,9 @@ void nuevoUsuario(String password) {
   }
 
   lcd.clear();
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print("Registro exitoso");
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print("ID: ");
   lcd.print(idString);
 
@@ -426,11 +501,11 @@ void nuevoUsuario(String password) {
 
   //Incrementamos y guardamos el valor de la cantidad de usuarios
   EEPROM.put(0, ++cantidadUsuarios);
-  
+
 }
 
 //La funcion hace funcionar la bocina n cantidad de ms
-void sonarBocina(int tiempo){
+void sonarBocina(int tiempo) {
   unsigned long auxTiempo = millis();
   while ( abs(millis() - auxTiempo) < tiempo ) {
     digitalWrite(Bocina, HIGH);
@@ -442,29 +517,29 @@ void sonarBocina(int tiempo){
 
 
 /*
-*   Luces 
+    Luces
 */
 
-void controladorAplicacion(){
+void controladorAplicacion() {
 
-    if(Serial.available()>0){
+  if (Serial.available() > 0) {
     entradaApp = Serial.read();
     Serial.println("entrada " + entradaApp);
-    switch(entradaApp){
+    switch (entradaApp) {
       case 'A': // Lab1 banda: A -> Encendido
         break;
       case 'B': // Lab1 banda: B -> Apagado
         break;
       case 'C': // Lab2 banda: C -> Encendido
         break;
-      case 'D': // Lab2 banda: D -> Apagado 
+      case 'D': // Lab2 banda: D -> Apagado
         break;
       case 'E': // Abrir porton: E -> Encendido
-        moverServo=true;
+        moverServo = true;
         break;
       case 'F': // Cerrar porton: F -> Apagado
-        cierreInesperado=true;
-        moverServo=false;
+        cierreInesperado = true;
+        moverServo = false;
         break;
       case 'G': // Luces Lab1: G -> Encender
         digitalWrite(ledLab1, HIGH);
@@ -480,10 +555,10 @@ void controladorAplicacion(){
         break;
       case 'K': // Luces SalidaCamiones: K -> Encender
         digitalWrite(ledCamiones, HIGH);
-        break; 
+        break;
       case 'L': // Luces SalidaCamiones: L -> Apagar
         digitalWrite(ledCamiones, LOW);
-        break; 
+        break;
       case 'M': // Luces EntradaEmpleados: M -> Encender
         digitalWrite(ledEmpleados, HIGH);
         break;
@@ -501,62 +576,62 @@ void controladorAplicacion(){
         digitalWrite(ledLab2, LOW);
         digitalWrite(ledCamiones, LOW);
         digitalWrite(ledEmpleados, LOW);
-        break;   
+        break;
     }
 
   }
 }
 
-void login(){
+void login() {
   if (esRegistro) {
     if (pwdUser == "") {
-      lcd.setCursor(0,0);
+      lcd.setCursor(0, 0);
       lcd.write("Ingrese su nueva");
-      lcd.setCursor(0,1);
+      lcd.setCursor(0, 1);
       lcd.write("contrasena");
-    } 
+    }
     else {
-      lcd.setCursor(0,0);
+      lcd.setCursor(0, 0);
       lcd.write("Confirme la contrasena");
     }
   }
-  else if (idUser != ""){
-    lcd.setCursor(0,0);
+  else if (idUser != "") {
+    lcd.setCursor(0, 0);
     lcd.write("Ingrese su contrasena");
-  } 
+  }
   else {
-    lcd.setCursor(0,0);
+    lcd.setCursor(0, 0);
     lcd.write("Ingrese su id");
   }
 
   //Validaciones sobre el teclado
   teclado.tick();
-  if(teclado.available()){
+  if (teclado.available()) {
     keypadEvent e = teclado.read();
     if (e.bit.EVENT == KEY_JUST_PRESSED) auxEntrada += (char)e.bit.KEY;
   }
 
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print(auxEntrada);
 
   //Contraseña y validaciones
   if (auxEntrada.length() == 4) {
     //Vemos si no se ha intentado registrar poniendo 0000, aqui empieza el registro
-    if (auxEntrada == "0000" && !esRegistro  && idUser == ""){
+    if (auxEntrada == "0000" && !esRegistro  && idUser == "") {
       esRegistro = true;
     }
     //Aqui empieza el login del sistema
     else if (esRegistro) {
-      if(pwdUser == "") {
+      if (pwdUser == "") {
         pwdUser = auxEntrada;
       }
-      else if ( auxEntrada ==  pwdUser ){
+      else if ( auxEntrada ==  pwdUser ) {
         nuevoUsuario(auxEntrada);
         pwdUser = "";
         esRegistro = false;
       }
       else {
-        lcd.setCursor(0,0);
+        lcd.setCursor(0, 0);
         lcd.write("La contrasena debe coincidir");
         delay(1500);
       }
@@ -564,43 +639,43 @@ void login(){
     //Aqui empieza el login del sistema
     else if (idUser == "") {
       idUser = auxEntrada;
-      
-    } 
+
+    }
     else {
-        bool esCorrecto = buscarUsuario(idUser, auxEntrada);
+      bool esCorrecto = buscarUsuario(idUser, auxEntrada);
 
-        idUser = "";
+      idUser = "";
 
-        if (esCorrecto) {
-          sesionIniciada = true;
-          conteoIntentos = 0;
+      if (esCorrecto) {
+        sesionIniciada = true;
+        conteoIntentos = 0;
 
-          sonarBocina(2000);
+        sonarBocina(2000);
 
-          digitalWrite(UserPermitido, HIGH);
-        } else {
-          conteoIntentos++;
-          Serial.println("Contraseña incorrecta");
-        }
+        digitalWrite(UserPermitido, HIGH);
+      } else {
+        conteoIntentos++;
+        Serial.println("Contraseña incorrecta");
+      }
 
     }
 
-  //Siempre limpiamos la entrada
+    //Siempre limpiamos la entrada
     lcd.clear();
     auxEntrada = "";
-    if(conteoIntentos >= 3) {
-      
+    if (conteoIntentos >= 3) {
+
       conteoIntentos = 0;
-      
+
       sonarBocina(5000);
 
       digitalWrite(UserBloqueo, HIGH);
 
       String auxAdmin = "";
-      while(true) {
+      while (true) {
         //Teclado admin
         teclado.tick();
-        if(teclado.available()){
+        if (teclado.available()) {
           keypadEvent e = teclado.read();
           if (e.bit.EVENT == KEY_JUST_PRESSED) auxAdmin += (char)e.bit.KEY;
         }
@@ -612,7 +687,7 @@ void login(){
       }
 
       digitalWrite(UserBloqueo, LOW);
-        
+
     }
   }
 
