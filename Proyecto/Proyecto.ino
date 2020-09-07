@@ -208,6 +208,9 @@ void setup() {
   //Esta funcion nos ayudara unicamente a ver por primera vez si la EEPROM esta completamente vacia, si hay o no cantidades de usuarios
 
   /*CUIDADO: SI ESTA SENTENCIA NO ESTA PUESTA COMO COMEnTARIO, SOLO DEFINIRA QUE NO HAY USUARIOS*/
+  /*for (int i = 0 ; i < EEPROM.length() ; i++) {
+    EEPROM.write(i, 0);
+  }*/
   //EEPROM.put(0, 0);
 
   //Pines de las luces
@@ -232,7 +235,7 @@ void setup() {
     };
 
     int tamanioCant = sizeof(cantidadUsuarios);
-    EEPROM.put(tamanioCant, cantidadUsuarios);
+    EEPROM.put(tamanioCant, admin);
   }
 
 }
@@ -240,11 +243,8 @@ void setup() {
 void loop() {
   //Aqui inicia la sesion xd
   if (!sesionIniciada) {
-
     //Login de la App
     login();
-    
-
   }
   else {
     //-------------------Porton-------------------
@@ -423,7 +423,8 @@ bool buscarUsuario(String id, String password) {
   {
     //Leemos cada usuario disponible
     usuario user;
-    EEPROM.get(sizeof(cantidadUsuarios) + sizeof(user) * indexUsuario, user);
+    unsigned int posicion = sizeof(cantidadUsuarios) + sizeof(user) * indexUsuario;
+    EEPROM.get(posicion, user);
 
     String IdUser(user.id);
     String PwdUser(user.password);
@@ -441,21 +442,26 @@ void nuevoUsuario(String password) {
   else if (cantidadUsuarios < 999) idString = "0";
   else idString = "";
 
-  idString += "" + (cantidadUsuarios + 1);
+  idString += cantidadUsuarios;
 
   //Ahora guardamos el Id en un array de bytes
-  char idB[5];
-  idString.toCharArray(idB, sizeof(idB));
+  char id[5];
+  idString.toCharArray(id, sizeof(id));
 
   //Creamos un variable para guardar la password
   char pwd[5];
   password.toCharArray(pwd, sizeof(pwd));
 
+  
+
   //Creamos un nuevo usuario
   usuario user = {
-    {idB},
-    {pwd}
+    {id[0], id[1], id[2], id[3], id[4]},
+    {pwd[0], pwd[1], pwd[2], pwd[3], pwd[4]}
   };
+
+  Serial.println(user.id);
+  Serial.println(user.password);
 
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -494,10 +500,12 @@ void nuevoUsuario(String password) {
   }
 
   //Guardamos su posicion segun el espacio indicado por la cantidad actual de usuarios debido que el elemento An esta en n-1
-  EEPROM.put(sizeof(cantidadUsuarios) + sizeof(user) * cantidadUsuarios, user);
+  unsigned int posicion = sizeof(cantidadUsuarios) + sizeof(user) * cantidadUsuarios;
+  EEPROM.put(posicion, user);
 
   //Incrementamos y guardamos el valor de la cantidad de usuarios
-  EEPROM.put(0, ++cantidadUsuarios);
+  cantidadUsuarios++;
+  EEPROM.put(0, cantidadUsuarios);
 
 }
 
@@ -579,6 +587,11 @@ void controladorAplicacion() {
   }
 }
 
+/*
+
+  LOGIN
+
+*/
 void login() {
   if (esRegistro) {
     if (pwdUser == "") {
@@ -589,12 +602,16 @@ void login() {
     }
     else {
       lcd.setCursor(0, 0);
-      lcd.write("Confirme la contrasena");
+      lcd.write("Confirme la");
+      lcd.setCursor(0, 1);
+      lcd.write("contrasena");
     }
   }
   else if (idUser != "") {
     lcd.setCursor(0, 0);
-    lcd.write("Ingrese su contrasena");
+    lcd.write("Ingrese su");
+    lcd.setCursor(0, 1);
+    lcd.write("contrasena");
   }
   else {
     lcd.setCursor(0, 0);
@@ -608,8 +625,10 @@ void login() {
     if (e.bit.EVENT == KEY_JUST_PRESSED) auxEntrada += (char)e.bit.KEY;
   }
 
-  lcd.setCursor(0, 1);
-  lcd.print(auxEntrada);
+  if(!esRegistro && idUser == ""){
+    lcd.setCursor(0, 1);
+    lcd.print(auxEntrada);
+  }
 
   //Contraseña y validaciones
   if (auxEntrada.length() == 4) {
@@ -629,14 +648,15 @@ void login() {
       }
       else {
         lcd.setCursor(0, 0);
-        lcd.write("La contrasena debe coincidir");
+        lcd.write("La contrasena debe");
+        lcd.setCursor(0, 1);
+        lcd.print("coincidir");
         delay(1500);
       }
     }
     //Aqui empieza el login del sistema
     else if (idUser == "") {
       idUser = auxEntrada;
-
     }
     else {
       bool esCorrecto = buscarUsuario(idUser, auxEntrada);
@@ -647,26 +667,28 @@ void login() {
         sesionIniciada = true;
         conteoIntentos = 0;
 
-        sonarBocina(2000);
-
         digitalWrite(UserPermitido, HIGH);
+        sonarBocina(2000);
       } else {
         conteoIntentos++;
-        Serial.println("Contraseña incorrecta");
       }
 
     }
 
-    //Siempre limpiamos la entrada
-    lcd.clear();
-    auxEntrada = "";
-    if (conteoIntentos >= 3) {
+    
+    if (conteoIntentos >= 4) {
 
       conteoIntentos = 0;
 
-      sonarBocina(5000);
 
       digitalWrite(UserBloqueo, HIGH);
+      sonarBocina(5000);
+
+      lcd.setCursor(0, 0);
+      lcd.write("Sistema Bloqueado");
+      lcd.setCursor(0, 1);
+      lcd.write("Contacte al Admin");
+
 
       String auxAdmin = "";
       while (true) {
@@ -686,6 +708,10 @@ void login() {
       digitalWrite(UserBloqueo, LOW);
 
     }
+
+    //Siempre limpiamos la entrada
+    lcd.clear();
+    auxEntrada = "";
   }
 
 }
