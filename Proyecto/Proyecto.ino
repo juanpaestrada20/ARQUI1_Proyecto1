@@ -35,7 +35,7 @@ unsigned int cantidadUsuarios, conteoIntentos;
 //Struct para la representacion de los usuarios
 struct usuario {
   char id[5];
-  char password[5];
+  char password[9];
 };
 
 //Creamos un auxiliar para obtener el auxEntrada
@@ -231,7 +231,7 @@ void setup() {
     //Creamos al ADMIN
     usuario admin = {
       "2018",
-      "0106"
+      "20180106"
     };
 
     int tamanioCant = sizeof(cantidadUsuarios);
@@ -425,9 +425,10 @@ bool buscarUsuario(String id, String password) {
     usuario user;
     unsigned int posicion = sizeof(cantidadUsuarios) + sizeof(user) * indexUsuario;
     EEPROM.get(posicion, user);
-
+    
     String IdUser(user.id);
     String PwdUser(user.password);
+
     if (IdUser == id && PwdUser == password) return true;
   }
 
@@ -449,7 +450,7 @@ void nuevoUsuario(String password) {
   idString.toCharArray(id, sizeof(id));
 
   //Creamos un variable para guardar la password
-  char pwd[5];
+  char pwd[9];
   password.toCharArray(pwd, sizeof(pwd));
 
   
@@ -457,7 +458,7 @@ void nuevoUsuario(String password) {
   //Creamos un nuevo usuario
   usuario user = {
     {id[0], id[1], id[2], id[3], id[4]},
-    {pwd[0], pwd[1], pwd[2], pwd[3], pwd[4]}
+    {pwd[0], pwd[1], pwd[2], pwd[3], pwd[4],pwd[5], pwd[6], pwd[7], pwd[8]}
   };
 
   Serial.println(user.id);
@@ -630,14 +631,9 @@ void login() {
     lcd.print(auxEntrada);
   }
 
-  //Contraseña y validaciones
-  if (auxEntrada.length() == 4) {
-    //Vemos si no se ha intentado registrar poniendo 0000, aqui empieza el registro
-    if (auxEntrada == "0000" && !esRegistro  && idUser == "") {
-      esRegistro = true;
-    }
-    //Aqui empieza el login del sistema
-    else if (esRegistro) {
+  //Contraseña
+  if(auxEntrada.length() == 8) {
+    if (esRegistro) {
       if (pwdUser == "") {
         pwdUser = auxEntrada;
       }
@@ -653,12 +649,7 @@ void login() {
         lcd.print("coincidir");
         delay(1500);
       }
-    }
-    //Aqui empieza el login del sistema
-    else if (idUser == "") {
-      idUser = auxEntrada;
-    }
-    else {
+    } else if (idUser != "") {
       bool esCorrecto = buscarUsuario(idUser, auxEntrada);
 
       idUser = "";
@@ -675,7 +666,6 @@ void login() {
 
     }
 
-    
     if (conteoIntentos >= 4) {
 
       conteoIntentos = 0;
@@ -708,8 +698,23 @@ void login() {
       digitalWrite(UserBloqueo, LOW);
 
     }
-
+    
     //Siempre limpiamos la entrada
+    lcd.clear();
+    auxEntrada = "";
+  }
+
+  //ID
+  if (auxEntrada.length() == 4 && !esRegistro && idUser == "") {
+    //Vemos si no se ha intentado registrar poniendo 0000, aqui empieza el registro
+    if (auxEntrada == "0000") {
+      esRegistro = true;
+    }
+    //Aqui empieza el login del sistema
+    else if (idUser == "") {
+      idUser = auxEntrada;
+    }
+   //Siempre limpiamos la entrada
     lcd.clear();
     auxEntrada = "";
   }
