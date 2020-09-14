@@ -252,12 +252,15 @@ void loop() {
   if (!sesionIniciada) {
     //Login de la App
     login();
-    Porton();
+    moverServo = true;
     TiempoAhora = millis();
   }
   else {
     //Control App
+    Porton();
+    leerTemperatura();
     controladorAplicacion();
+    leerTemperatura();
   }
 
 }
@@ -535,7 +538,8 @@ void controladorAplicacion() {
 
   if (Serial.available() > 0) {
     entradaApp = Serial.read();
-    Serial.println("entrada " + entradaApp);
+    Serial.print("Entrada ");
+    Serial.println(entradaApp);
     switch (entradaApp) {
       case 'A': // Lab1 banda: A -> Encendido
         moverStepper(-1);
@@ -589,6 +593,10 @@ void controladorAplicacion() {
         digitalWrite(ledLab2, LOW);
         digitalWrite(ledCamiones, LOW);
         digitalWrite(ledEmpleados, LOW);
+        break;
+      case 'Z': // Leer temperatura
+        Serial.println("SExo");
+        leerTemperatura();
         break;
     }
 
