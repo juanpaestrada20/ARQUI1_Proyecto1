@@ -5,10 +5,7 @@
 #include <Stepper.h>
 
 //Variable que contiene el dato de la temperatura a enviar a la app
-float DatosEnviar[] = {0.0}
-
-int Periodo = 900; //El tiempo que se demora en enviar un nuevo dato a la aplicacion
-unsigned long TiempoAhora = 0; //Variable para determinar el tiempo transcurr
+float DatosEnviar[] = {0.0};
 
 // Esto es el número de pasos por revolución
 #define Pasos 20
@@ -178,8 +175,12 @@ void setup() {
 
   // set up the LCD's number of columns and rows:
   lcd.begin(20, 2);
+
+  //w
+  lcd.write(2);
   // Print a message to the LCD.
   lcd.print("Bienvenido");
+  lcd.write(2);
 
   delay(1000);
 
@@ -217,7 +218,7 @@ void setup() {
   /*for (int i = 0 ; i < EEPROM.length() ; i++) {
     EEPROM.write(i, 0);
   }*/
-  //EEPROM.put(0, 0);
+  EEPROM.put(0, 0);
 
   //Pines de las luces
   pinMode(ledLab1, OUTPUT);
