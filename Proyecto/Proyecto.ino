@@ -4,6 +4,12 @@
 #include <Servo.h>
 #include <Stepper.h>
 
+//Variable que contiene el dato de la temperatura a enviar a la app
+float DatosEnviar[] = {0.0}
+
+int Periodo = 900; //El tiempo que se demora en enviar un nuevo dato a la aplicacion
+unsigned long TiempoAhora = 0; //Variable para determinar el tiempo transcurr
+
 // Esto es el número de pasos por revolución
 #define Pasos 20
 
@@ -249,7 +255,10 @@ void loop() {
   else {
     //-------------------Porton-------------------
     Porton();
-    leerTemperatura();
+    if(millis() > TiempoAhora + periodo){ //Hacemos el ciclo para la emision de datos a la aplicacion
+        TiempoAhora = millis();
+        leerTemperatura();
+    }
     moverStepper(1);
     //Control App
     controladorAplicacion();
@@ -724,6 +733,7 @@ void login() {
 void leerTemperatura(){
   temperatura = analogRead(A1);
   float temp = (temperatura/1024.0)*500;
+  DatosEnviar[0] = temp;
   Serial.print("Temperatura");
   Serial.print(temp);
   Serial.print("°C");
