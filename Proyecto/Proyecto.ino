@@ -217,8 +217,8 @@ void setup() {
   /*CUIDADO: SI ESTA SENTENCIA NO ESTA PUESTA COMO COMEnTARIO, SOLO DEFINIRA QUE NO HAY USUARIOS*/
   /*for (int i = 0 ; i < EEPROM.length() ; i++) {
     EEPROM.write(i, 0);
-  }*/
-  EEPROM.put(0, 0);
+    }*/
+  //EEPROM.put(0, 0);
 
   //Pines de las luces
   pinMode(ledLab1, OUTPUT);
@@ -252,15 +252,10 @@ void loop() {
   if (!sesionIniciada) {
     //Login de la App
     login();
+    Porton();
+    TiempoAhora = millis();
   }
   else {
-    //-------------------Porton-------------------
-    Porton();
-    if(millis() > TiempoAhora + periodo){ //Hacemos el ciclo para la emision de datos a la aplicacion
-        TiempoAhora = millis();
-        leerTemperatura();
-    }
-    moverStepper(1);
     //Control App
     controladorAplicacion();
   }
@@ -435,7 +430,7 @@ bool buscarUsuario(String id, String password) {
     usuario user;
     unsigned int posicion = sizeof(cantidadUsuarios) + sizeof(user) * indexUsuario;
     EEPROM.get(posicion, user);
-    
+
     String IdUser(user.id);
     String PwdUser(user.password);
 
@@ -463,12 +458,12 @@ void nuevoUsuario(String password) {
   char pwd[9];
   password.toCharArray(pwd, sizeof(pwd));
 
-  
+
 
   //Creamos un nuevo usuario
   usuario user = {
     {id[0], id[1], id[2], id[3], id[4]},
-    {pwd[0], pwd[1], pwd[2], pwd[3], pwd[4],pwd[5], pwd[6], pwd[7], pwd[8]}
+    {pwd[0], pwd[1], pwd[2], pwd[3], pwd[4], pwd[5], pwd[6], pwd[7], pwd[8]}
   };
 
   Serial.println(user.id);
@@ -543,10 +538,12 @@ void controladorAplicacion() {
     Serial.println("entrada " + entradaApp);
     switch (entradaApp) {
       case 'A': // Lab1 banda: A -> Encendido
+        moverStepper(-1);
         break;
       case 'B': // Lab1 banda: B -> Apagado
         break;
       case 'C': // Lab2 banda: C -> Encendido
+        moverStepper(1);
         break;
       case 'D': // Lab2 banda: D -> Apagado
         break;
@@ -636,13 +633,13 @@ void login() {
     if (e.bit.EVENT == KEY_JUST_PRESSED) auxEntrada += (char)e.bit.KEY;
   }
 
-  if(!esRegistro && idUser == ""){
+  if (!esRegistro && idUser == "") {
     lcd.setCursor(0, 1);
     lcd.print(auxEntrada);
   }
 
   //Contraseña
-  if(auxEntrada.length() == 8) {
+  if (auxEntrada.length() == 8) {
     if (esRegistro) {
       if (pwdUser == "") {
         pwdUser = auxEntrada;
@@ -708,7 +705,7 @@ void login() {
       digitalWrite(UserBloqueo, LOW);
 
     }
-    
+
     //Siempre limpiamos la entrada
     lcd.clear();
     auxEntrada = "";
@@ -724,20 +721,19 @@ void login() {
     else if (idUser == "") {
       idUser = auxEntrada;
     }
-   //Siempre limpiamos la entrada
+    //Siempre limpiamos la entrada
     lcd.clear();
     auxEntrada = "";
   }
 
 }
 
-void leerTemperatura(){
+void leerTemperatura() {
   temperatura = analogRead(A1);
-  float temp = (temperatura/1024.0)*500;
+  float temp = (temperatura / 1024.0) * 500;
   DatosEnviar[0] = temp;
   Serial.print("Temperatura");
   Serial.print(temp);
   Serial.print("°C");
-  delay(10000);
-
+  Serial.println();
 }
