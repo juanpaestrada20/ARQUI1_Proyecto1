@@ -5,7 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "C:\\Program Files (x86)\\Arduino\\libraries\\/**",
-                "C:\\Users\\JACL\\Documents\\Arduino\\libraries\\/**"
+                "C:\\Users\\JACL\\Documents\\Arduino\\libraries/**"
             ],
             "defines": [
                 "_DEBUG",

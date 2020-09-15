@@ -1,5 +1,5 @@
 #include <EEPROM.h>
-#include <LiquidCrystal.h>
+#include <LiquidCrystal_I2C.h>
 #include <Adafruit_Keypad.h>
 #include <Servo.h>
 #include <Stepper.h>
@@ -67,7 +67,7 @@ bool errorContrasenia = false, sesionIniciada = false, esRegistro = false;
     wiper to LCD VO pin (pin 3)
 */
 const int rs = 7, en = 6, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+LiquidCrystal_I2C lcd(0x20,20,2);
 
 byte face[8] = {
   0b00000,
@@ -79,7 +79,7 @@ byte face[8] = {
   0b01110,
   0b00100
 };
-byte check[8] = {
+byte cheque[8] = {
   0b00000,
   0b00000,
   0b00000,
@@ -165,25 +165,22 @@ unsigned long TiempoAhora = 0; //Variable para determinar el tiempo transcurrido
 
 
 void setup() {
+  lcd.init(); //initialize the lcd
+  lcd.backlight();
+
+  
+
   Serial.begin(9600);
   // auxiliares para em manejo del porton
   moverServo = cierreInesperado = porton = false;
   //caracteres especiales para la pantalla
-  lcd.createChar(0, face);
-  lcd.createChar(1, check);
-  lcd.createChar(2, lock);
-  lcd.createChar(3, unlock);
+ 
 
   // set up the LCD's number of columns and rows:
-  lcd.begin(20, 2);
-
-  //w
-  lcd.write(2);
-  // Print a message to the LCD.
-  lcd.print("Bienvenido");
-  lcd.write(2);
-
-  delay(1000);
+  lcd.createChar(0, face);
+  lcd.createChar(1, cheque);
+  lcd.createChar(2, lock);
+  lcd.createChar(3, unlock);  
 
   //Teclado de empieza xd
   teclado.begin();
@@ -246,6 +243,13 @@ void setup() {
     EEPROM.put(tamanioCant, admin);
   }
 
+  lcd.setCursor(0,0);
+  lcd.write((byte)2);
+  lcd.print("Bienvenido");
+  lcd.write((byte)2);
+  delay(5000);
+
+ 
 }
 
 void loop() {
@@ -259,7 +263,8 @@ void loop() {
   else {
     //Control App
     Porton();
-    controladorAplicacion();
+    /*controladorAplicacion();*/
+    //lcd.print("Adentro");
   }
 
 }
@@ -339,7 +344,7 @@ void mostrarTexto(int c, String texto ) {
   lcd.write(1);
   lcd.print(" ControlPorton ");
   lcd.setCursor(0, 1);
-  lcd.write(c);
+  lcd.write((byte)c);
   lcd.print(" ");
   lcd.write((byte)0);
   lcd.print(" " + texto + " ");
@@ -513,17 +518,6 @@ void nuevoUsuario(String password) {
 
 }
 
-//La funcion hace funcionar la bocina n cantidad de ms
-void sonarBocina(int tiempo) {
-  unsigned long auxTiempo = millis();
-  while ( abs(millis() - auxTiempo) < tiempo ) {
-    digitalWrite(Bocina, HIGH);
-    delay(1);
-  }
-
-  digitalWrite(Bocina, LOW);
-}
-
 
 /*
     Luces
@@ -606,26 +600,26 @@ void login() {
   if (esRegistro) {
     if (pwdUser == "") {
       lcd.setCursor(0, 0);
-      lcd.write("Ingrese su nueva");
+      lcd.print("Ingrese su nueva");
       lcd.setCursor(0, 1);
-      lcd.write("contrasena");
+      lcd.print("contrasena");
     }
     else {
       lcd.setCursor(0, 0);
-      lcd.write("Confirme la");
+      lcd.print("Confirme la");
       lcd.setCursor(0, 1);
-      lcd.write("contrasena");
+      lcd.print("contrasena");
     }
   }
   else if (idUser != "") {
     lcd.setCursor(0, 0);
-    lcd.write("Ingrese su");
+    lcd.print("Ingrese su");
     lcd.setCursor(0, 1);
-    lcd.write("contrasena");
+    lcd.print("contrasena");
   }
   else {
     lcd.setCursor(0, 0);
-    lcd.write("Ingrese su id");
+    lcd.print("Ingrese su id");
   }
 
   //Validaciones sobre el teclado
@@ -653,7 +647,7 @@ void login() {
       }
       else {
         lcd.setCursor(0, 0);
-        lcd.write("La contrasena debe");
+        lcd.print("La contrasena debe");
         lcd.setCursor(0, 1);
         lcd.print("coincidir");
         delay(1500);
@@ -668,7 +662,13 @@ void login() {
         conteoIntentos = 0;
 
         digitalWrite(UserPermitido, HIGH);
-        sonarBocina(2000);
+
+        tone(Bocina, 50,2000);
+
+        lcd.clear();
+        lcd.print("Acceso permitido");
+        delay(2000);
+
       } else {
         conteoIntentos++;
       }
@@ -681,12 +681,12 @@ void login() {
 
 
       digitalWrite(UserBloqueo, HIGH);
-      sonarBocina(5000);
+      tone(Bocina, 50,5000);
 
       lcd.setCursor(0, 0);
-      lcd.write("Sistema Bloqueado");
+      lcd.print("Sistema Bloqueado");
       lcd.setCursor(0, 1);
-      lcd.write("Contacte al Admin");
+      lcd.print("Contacte al Admin");
 
 
       String auxAdmin = "";
