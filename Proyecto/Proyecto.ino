@@ -5,7 +5,7 @@
 #include <Stepper.h>
 
 //Variable que contiene el dato de la temperatura a enviar a la app
-float DatosEnviar[] = {0.0};
+float DatosEnviar = 0.0;
 
 // Esto es el número de pasos por revolución
 #define Pasos 20
@@ -135,7 +135,7 @@ int ledEmpleados = 35; //Declaramos el pin de las luces de la entrada de emplead
 char entradaApp; //Declaramos una variables para los datos de entrada
 
 //Clock
-int periodo = 500; //El tiempo que se demora en enviar un nuevo dato a la aplicacion
+int periodo = 1000; //El tiempo que se demora en enviar un nuevo dato a la aplicacion
 unsigned long TiempoAhora = 0; //Variable para determinar el tiempo transcurrido
 /*
      Lab1 banda: A -> Encendido
@@ -162,6 +162,7 @@ unsigned long TiempoAhora = 0; //Variable para determinar el tiempo transcurrido
      Luces General: O -> Encender
      Luces General: P -> Apagar
 */
+
 
 void setup() {
   Serial.begin(9600);
@@ -218,7 +219,7 @@ void setup() {
   /*for (int i = 0 ; i < EEPROM.length() ; i++) {
     EEPROM.write(i, 0);
     }*/
-  //EEPROM.put(0, 0);
+  EEPROM.put(0, 0);
 
   //Pines de las luces
   pinMode(ledLab1, OUTPUT);
@@ -258,9 +259,7 @@ void loop() {
   else {
     //Control App
     Porton();
-    leerTemperatura();
     controladorAplicacion();
-    leerTemperatura();
   }
 
 }
@@ -413,7 +412,6 @@ void moverStepper(int direccion) {
     stepper2.step(direccion);
     delay(1);
     direccion == 1 ? pararMotor = digitalRead(Lab1) : pararMotor = digitalRead(Lab2);
-    Serial.println(pararMotor);
   }
   stepper1.step(0);
   stepper2.step(0);
@@ -468,9 +466,6 @@ void nuevoUsuario(String password) {
     {id[0], id[1], id[2], id[3], id[4]},
     {pwd[0], pwd[1], pwd[2], pwd[3], pwd[4], pwd[5], pwd[6], pwd[7], pwd[8]}
   };
-
-  Serial.println(user.id);
-  Serial.println(user.password);
 
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -538,8 +533,6 @@ void controladorAplicacion() {
 
   if (Serial.available() > 0) {
     entradaApp = Serial.read();
-    Serial.print("Entrada ");
-    Serial.println(entradaApp);
     switch (entradaApp) {
       case 'A': // Lab1 banda: A -> Encendido
         moverStepper(-1);
@@ -595,8 +588,9 @@ void controladorAplicacion() {
         digitalWrite(ledEmpleados, LOW);
         break;
       case 'Z': // Leer temperatura
-        Serial.println("SExo");
+        digitalWrite(10,HIGH);
         leerTemperatura();
+        DatosEnviar = 0.0;
         break;
     }
 
@@ -739,9 +733,9 @@ void login() {
 void leerTemperatura() {
   temperatura = analogRead(A1);
   float temp = (temperatura / 1024.0) * 500;
-  DatosEnviar[0] = temp;
-  Serial.print("Temperatura");
+  DatosEnviar = temp; 
+  Serial.write("La temperatura es: ");
   Serial.print(temp);
-  Serial.print("°C");
-  Serial.println();
+  Serial.write(" °C");
+  
 }
