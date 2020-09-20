@@ -263,7 +263,7 @@ void loop() {
   else {
     //Control App
     Porton();
-    /*controladorAplicacion();*/
+    controladorAplicacion();
     //lcd.print("Adentro");
   }
 
@@ -316,16 +316,16 @@ void Porton() {
     if (tiempoPorton == 0 ) {
       tiempoPorton = millis();
       digitalWrite(Rojo, HIGH);
-    } else if (tiempoPorton + 2000 < millis() && digitalRead(Rojo)) { // cuando pasen los 6 segundos se apagara la luz roja y se empiezaa cerrar el porton
+    } else if (tiempoPorton + 6000 < millis() && digitalRead(Rojo)) { // cuando pasen los 6 segundos se apagara la luz roja y se empiezaa cerrar el porton
       digitalWrite(Rojo, LOW);
       servo.write(0);
       mostrarTexto(2, "Cerrando");
-    } else if (millis() > tiempoPorton + 4100 && !digitalRead(Amarillo)) { // (4100->tiempo que tardo en abrir mas el tiempo en que que se cierra)
+    } else if (millis() > tiempoPorton + 8100 && !digitalRead(Amarillo)) { // (4100->tiempo que tardo en abrir mas el tiempo en que que se cierra)
       digitalWrite(Amarillo, HIGH);
       tone(BuzzerPorton, 1000);
       mostrarTexto(2, "Cerrado");
 
-    } else if (millis() > tiempoPorton + 6100) {
+    } else if (millis() > tiempoPorton + 10100) {
       digitalWrite(Amarillo, LOW);
       noTone(BuzzerPorton);
       moverServo = porton = false;
